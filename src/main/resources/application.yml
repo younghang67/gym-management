@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: api
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/gym_db?serverTimezone=UTC
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: always
+
+jwt:
+  secret: dGhpc2lzYXZlcnlsb25nYW5kc2VjdXJlYmFzZTY0a2V5Zm9yand0
+  expiration: 86400000
