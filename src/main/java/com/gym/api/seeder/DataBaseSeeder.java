@@ -5,10 +5,9 @@ import com.gym.api.entity.User;
 import com.gym.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NonNull;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Arrays;
 
@@ -16,11 +15,12 @@ import java.util.Arrays;
 @Component
 @RequiredArgsConstructor
 public class DataBaseSeeder implements CommandLineRunner {
+
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;  // ← changed from BCryptPasswordEncoder
 
     @Override
-    public void run(String @NonNull ... args) throws Exception {
+    public void run(String... args) throws Exception {
         if (userRepository.count() == 0) {
             log.info("Starting database seeding...");
             seedUsers();
