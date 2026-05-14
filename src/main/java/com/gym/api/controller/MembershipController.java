@@ -1,5 +1,6 @@
 package com.gym.api.controller;
 
+import com.gym.api.dto.AssignMembershipRequest;
 import com.gym.api.dto.MembershipRequest;
 import com.gym.api.entity.Membership;
 import com.gym.api.entity.Status;
@@ -26,10 +27,10 @@ public class MembershipController {
         return ResponseEntity.ok(membershipService.createMembership(request));
     }
 
-    @PostMapping("/assign/{userId}")
-    public ResponseEntity<Void> assignMembership(@PathVariable Long userId,
-                                                 @Valid @RequestBody MembershipRequest request) {
-        membershipService.assignMembership(userId, request);
+    @PostMapping("/assign")
+    public ResponseEntity<Void> assignMembership(
+            @Valid @RequestBody AssignMembershipRequest request) {
+        membershipService.assignMembership(request);
         return ResponseEntity.noContent().build();
     }
 

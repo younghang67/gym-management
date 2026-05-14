@@ -1,12 +1,13 @@
 package com.gym.api.service;
 
-import com.gym.api.dto.LoginRequest;
-import com.gym.api.dto.RegisterRequest;
-import com.gym.api.dto.UserResponse;
+import com.gym.api.dto.*;
 import com.gym.api.entity.Role;
 import com.gym.api.entity.User;
+import com.gym.api.exception.DuplicateResourceException;
 import com.gym.api.repository.UserRepository;
 import com.gym.api.security.JwtService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,17 +44,42 @@ public class UserService {
         return mapToResponse(userRepository.save(user));
     }
 
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, HttpServletResponse response) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User Not Found."));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
+        String token = jwtService.generateToken(user);
 
-        return jwtService.generateToken(user);
+        Cookie cookie = new Cookie("token", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24);
+        response.addCookie(cookie);
+
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+                user.getId(),
+                user.getName(),
+                user.getRole().name(),
+                user.getPhoneNumber(),
+                user.getIsActive(),
+                user.getEmail()
+        );
+
+        return new LoginResponse(userInfo);
     }
 
+    public void logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("token", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+    }
     // ─── Admin CRUD ──────────────────────────────────────────
 
     public UserResponse createUser(RegisterRequest request) {
@@ -73,14 +99,25 @@ public class UserService {
         return mapToResponse(user);
     }
 
-    public UserResponse updateUser(Long id, RegisterRequest request) {
+    public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPhoneNumber(request.getPhoneNumber());
-        user.setRole(request.getRole() != null ? request.getRole() : user.getRole());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().equals(user.getPhoneNumber()) &&
+                userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new DuplicateResourceException("Phone number already in use");
+        }
+
+        if (request.getEmail() != null &&
+                !request.getEmail().equals(user.getEmail()) &&
+                userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException("Email already in use by another user");
+        }
+        if (request.getName() != null) user.setName(request.getName());
+        if (request.getEmail() != null) user.setEmail(request.getEmail());
+        if (request.getPhoneNumber() != null) user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getRole() != null) user.setRole(request.getRole());
+        if (request.getIsActive() != null) user.setIsActive(request.getIsActive());
 
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
