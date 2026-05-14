@@ -1,5 +1,6 @@
 package com.gym.api.service;
 
+import com.gym.api.dto.AssignMembershipRequest;
 import com.gym.api.dto.MembershipRequest;
 import com.gym.api.entity.Membership;
 import com.gym.api.entity.Status;
@@ -47,24 +48,52 @@ public class MembershipService {
         membershipRepository.deleteById(id);
     }
 
-    // user lai assign garne
 
-    public void assignMembership(Long userId, MembershipRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public void assignMembership(AssignMembershipRequest request) {
+        if (request.getUserId() == null) {
+            throw new IllegalArgumentException("User ID is required");
+        }
+        if (request.getMembershipId() == null) {
+            throw new IllegalArgumentException("Membership ID is required");
+        }
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
 
         Membership membership = membershipRepository.findById(request.getMembershipId())
-                .orElseThrow(() -> new RuntimeException("Membership not found"));
+                .orElseThrow(() -> new RuntimeException("Membership not found: " + request.getMembershipId()));
 
-        LocalDate startDate = LocalDate.now();
-        LocalDate endDate = startDate.plusDays(membership.getDurationDays());  // ← fixed
+        LocalDate startDate = request.getStartDate() != null
+                ? request.getStartDate()
+                : LocalDate.now();
+
+        if (startDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Start date cannot be in the past");
+        }
+        LocalDate endDate = startDate.plusDays(membership.getDurationDays());
+
+        boolean hasActiveMembership = userMembershipRepository
+                .existsByUserIdAndStatusAndEndDateAfter(
+                        request.getUserId(),
+                        Status.ACTIVE,
+                        LocalDate.now()
+                );
+
+        if (hasActiveMembership) {
+            throw new IllegalStateException(
+                    "User already has an active membership"
+            );
+        }
+
+        Status status = request.getStatus() != null
+                ? request.getStatus()
+                : Status.ACTIVE;
 
         UserMembership userMembership = UserMembership.builder()
                 .user(user)
                 .membership(membership)
                 .startDate(startDate)
                 .endDate(endDate)
-                .status(Status.ACTIVE)
+                .status(status)
                 .build();
 
         userMembershipRepository.save(userMembership);

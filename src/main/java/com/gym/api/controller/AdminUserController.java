@@ -1,6 +1,7 @@
 package com.gym.api.controller;
 
 import com.gym.api.dto.RegisterRequest;
+import com.gym.api.dto.UpdateUserRequest;
 import com.gym.api.dto.UserResponse;
 import com.gym.api.entity.Role;
 import com.gym.api.service.UserService;
@@ -15,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")   // all endpoint of controller require ADMIN
+@PreAuthorize("hasRole('ADMIN')")
 @CrossOrigin(origins = "http://localhost:3000")
 public class AdminUserController {
 
@@ -23,7 +24,7 @@ public class AdminUserController {
 
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(userService.createUser(request));   // Better method name
+        return ResponseEntity.ok(userService.createUser(request));
     }
 
     @GetMapping
@@ -38,7 +39,7 @@ public class AdminUserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
-                                                   @Valid @RequestBody RegisterRequest request) {
+                                                   @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
